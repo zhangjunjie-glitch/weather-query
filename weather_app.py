@@ -23,7 +23,7 @@ from weather import Weather
 EXCEL_REL_PATH = os.path.join("RawAssets", "DesignerAssets", "NewDatabase", "logic", "weather.xlsx")
 
 # 应用版本号，用于「检查更新」；发布前请修改并打 tag（如 v1.0.1）
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 # GitHub 仓库：用于检查更新与打开发布页（用户名/仓库名）
 GITHUB_REPO = "zhangjunjie-glitch/weather-query"
 
