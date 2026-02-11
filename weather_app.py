@@ -556,6 +556,7 @@ class WeatherApp:
 
     def _do_auto_update(self, download_url, tag):
         """后台下载 zip，写 updater 脚本，运行后退出；脚本会解压覆盖并重启。"""
+        self.status_var.set("正在下载新版本…")
         def work():
             try:
                 self.root.after(0, lambda: self.status_var.set("正在下载新版本…"))
@@ -582,6 +583,7 @@ class WeatherApp:
                 self.root.after(0, lambda: (messagebox.showinfo("自动更新", "程序即将退出并完成更新，请稍候重新打开。"), sys.exit(0)))
             except Exception as e:
                 self.root.after(0, lambda: messagebox.showerror("自动更新失败", str(e)))
+        threading.Thread(target=work, daemon=True).start()
 
     @staticmethod
     def _write_updater_bat(zip_path, install_dir):
