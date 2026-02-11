@@ -1,0 +1,22 @@
+# 打包产物
+build/
+dist/
+*.spec.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+
+# 本地配置（可选：若希望把“上次路径”也提交则删掉下一行）
+weather_app_config.json
+
+# 输出与临时
+output/
+*.rar
+*.zip
+
+# 本目录下直接生成的 exe（CI 会生成在 dist/ 里）
+WeatherQuery.exe

@@ -1,0 +1,41 @@
+# 在推送 tag（如 v1.0.0）时自动打包 EXE 并创建 GitHub 发布
+# 其他人可通过程序内「检查更新」获取最新版本
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE (PyInstaller onedir)
+        run: |
+          pyinstaller --noconfirm --clean WeatherQuery_onedir.spec
+
+      - name: Zip WeatherQuery folder
+        run: |
+          Compress-Archive -Path dist\WeatherQuery -DestinationPath WeatherQuery-$env:GITHUB_REF_NAME.zip
+
+      - name: Create Release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WeatherQuery-*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
