@@ -24,7 +24,7 @@ EXCEL_REL_PATH = os.path.join("RawAssets", "DesignerAssets", "NewDatabase", "log
 # 应用版本号，用于「检查更新」；发布前请修改并打 tag（如 v1.0.1）
 __version__ = "1.0.0"
 # GitHub 仓库：用于检查更新与打开发布页，请改为你的 用户名/仓库名
-GITHUB_REPO = "YOUR_USERNAME/weather-query"
+GITHUB_REPO = "https://github.com/zhangjunjie-glitch/weather-query"
 
 
 def _app_dir():
