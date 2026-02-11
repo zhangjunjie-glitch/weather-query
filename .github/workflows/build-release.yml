@@ -39,6 +39,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: WeatherQuery-*.zip
+          body: |
+            自动打包的 WeatherQuery 目录版，解压后运行 WeatherQuery.exe。
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
