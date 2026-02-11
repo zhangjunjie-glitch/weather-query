@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 import tkinter as tk
 import urllib.request
@@ -22,7 +23,7 @@ from weather import Weather
 EXCEL_REL_PATH = os.path.join("RawAssets", "DesignerAssets", "NewDatabase", "logic", "weather.xlsx")
 
 # 应用版本号，用于「检查更新」；发布前请修改并打 tag（如 v1.0.1）
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 # GitHub 仓库：用于检查更新与打开发布页（用户名/仓库名）
 GITHUB_REPO = "zhangjunjie-glitch/weather-query"
 
@@ -508,7 +509,7 @@ class WeatherApp:
             self._load_from_path(excel_path)
 
     def _check_update(self):
-        """检查 GitHub 最新发布版本，若比当前新则提示并打开发布页下载。"""
+        """检查 GitHub 最新发布版本，支持自动更新或打开发布页。"""
         if "YOUR_USERNAME" in GITHUB_REPO or "/" not in GITHUB_REPO:
             messagebox.showinfo("检查更新", "请先在代码中配置 GITHUB_REPO 为你的 用户名/仓库名。")
             return
@@ -521,13 +522,27 @@ class WeatherApp:
                     data = json.loads(resp.read().decode())
                 tag = (data.get("tag_name") or "").strip().lstrip("v")
                 html_url = data.get("html_url") or ("https://github.com/%s/releases" % GITHUB_REPO)
+                assets = data.get("assets") or []
+                download_url = None
+                for a in assets:
+                    u = (a.get("browser_download_url") or "").strip()
+                    if u and u.endswith(".zip"):
+                        download_url = u
+                        break
                 def on_done():
                     self.status_var.set("已加载，可点击日历日期或使用下方功能" if self._data_loaded else "已记住路径")
                     if not tag:
                         messagebox.showinfo("检查更新", "无法获取最新版本号。")
                         return
                     if self._version_less(__version__, tag):
-                        if messagebox.askyesno("发现新版本", "当前版本：%s\n最新版本：%s\n是否打开发布页下载？" % (__version__, tag)):
+                        msg = "当前版本：%s\n最新版本：%s\n\n是否自动更新？程序将下载并替换后重启。\n选「否」则仅打开发布页。" % (__version__, tag)
+                        if messagebox.askyesno("发现新版本", msg):
+                            if download_url:
+                                self._do_auto_update(download_url, tag)
+                            else:
+                                messagebox.showwarning("自动更新", "未找到可下载的 zip，请从发布页手动下载。")
+                                webbrowser.open(html_url)
+                        else:
                             webbrowser.open(html_url)
                     else:
                         messagebox.showinfo("检查更新", "当前已是最新版本（v%s）。" % __version__)
@@ -538,6 +553,60 @@ class WeatherApp:
                     messagebox.showerror("检查更新失败", str(e))
                 self.root.after(0, on_fail)
         threading.Thread(target=do_check, daemon=True).start()
+
+    def _do_auto_update(self, download_url, tag):
+        """后台下载 zip，写 updater 脚本，运行后退出；脚本会解压覆盖并重启。"""
+        def work():
+            try:
+                self.root.after(0, lambda: self.status_var.set("正在下载新版本…"))
+                zip_path = os.path.join(tempfile.gettempdir(), "WeatherQuery-%s.zip" % tag)
+                req = urllib.request.Request(download_url, headers={"Accept": "application/octet-stream"})
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    with open(zip_path, "wb") as f:
+                        while True:
+                            chunk = resp.read(65536)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                install_dir = _app_dir()
+                bat = self._write_updater_bat(zip_path, install_dir)
+                if not bat:
+                    self.root.after(0, lambda: messagebox.showerror("自动更新", "无法创建更新脚本。"))
+                    return
+                CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                subprocess.Popen(
+                    ["cmd", "/c", bat, zip_path, install_dir],
+                    creationflags=CREATE_NO_WINDOW,
+                    shell=False,
+                )
+                self.root.after(0, lambda: (messagebox.showinfo("自动更新", "程序即将退出并完成更新，请稍候重新打开。"), sys.exit(0)))
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("自动更新失败", str(e)))
+
+    @staticmethod
+    def _write_updater_bat(zip_path, install_dir):
+        """写入用于解压覆盖并重启的 bat 到临时目录，返回 bat 路径。"""
+        content = r"""@echo off
+set "ZIP_PATH=%~1"
+set "INSTALL_DIR=%~2"
+if not defined ZIP_PATH exit /b 1
+if not defined INSTALL_DIR exit /b 1
+timeout /t 2 /nobreak >nul
+set "TEMP_EXTRACT=%TEMP%\WeatherQuery_update%RANDOM%"
+mkdir "%TEMP_EXTRACT%" 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '%ZIP_PATH%' -DestinationPath '%TEMP_EXTRACT%' -Force"
+xcopy /E /Y /H "%TEMP_EXTRACT%\WeatherQuery\*" "%INSTALL_DIR%\" >nul 2>&1
+start "" "%INSTALL_DIR%\WeatherQuery.exe"
+rd /s /q "%TEMP_EXTRACT%" 2>nul
+del "%ZIP_PATH%" 2>nul
+"""
+        try:
+            fd, path = tempfile.mkstemp(suffix=".bat", prefix="WeatherQuery_updater_", text=True)
+            os.write(fd, content.encode("utf-8"))
+            os.close(fd)
+            return path
+        except Exception:
+            return None
 
     @staticmethod
     def _version_less(current, latest):
