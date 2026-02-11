@@ -23,7 +23,7 @@ from weather import Weather
 EXCEL_REL_PATH = os.path.join("RawAssets", "DesignerAssets", "NewDatabase", "logic", "weather.xlsx")
 
 # 应用版本号，用于「检查更新」；发布前请修改并打 tag（如 v1.0.1）
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 # GitHub 仓库：用于检查更新与打开发布页（用户名/仓库名）
 GITHUB_REPO = "zhangjunjie-glitch/weather-query"
 
@@ -106,7 +106,7 @@ SPECIAL_WEATHER_ATTRS = {
     "花瓣雨": [106],
     "流星雨": list(range(107, 119)),  # 107-118
     "极光": [119, 120, 121],
-    "雪天": [202, 203, 204],  # 小雪、中雪、大雪
+    "雪天": [211, 212, 213],  # 小雪、中雪、大雪
     "彩虹": [301, 302, 303, 304, 305],
 }
 
