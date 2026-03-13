@@ -95,8 +95,10 @@ def _save_save_folder(folder):
         pass
 
 
-# 星期表头（周日为第一天，与 calendar.monthcalendar 一致）
+# 星期表头（周日为第一天）
 WEEK_HEADERS = ("日", "一", "二", "三", "四", "五", "六")
+# 使 monthcalendar 第一列是周日，与表头一致（默认是周一）
+calendar.setfirstweekday(calendar.SUNDAY)
 
 # 特殊天气：属性名 -> 包含的天气 ID 列表（用于多选查询）
 SPECIAL_WEATHER_ATTRS = {
